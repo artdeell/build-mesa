@@ -168,11 +168,11 @@ move cmake-%LLVM_VERSION%.src cmake 1>nul 2>nul
 :no-llvm-download
 
 echo Downloading mesa
-curl -sfL https://archive.mesa3d.org/mesa-%MESA_VERSION%.tar.xz ^
-  | %SZIP% x -bb0 -txz -si -so ^
+curl -sfL https://gitlab.freedesktop.org/Triang3l/mesa/-/archive/Terakan_RAT_v2/mesa-Terakan_RAT_v2.tar.gz ^
+  | %SZIP% x -bb0 -tgz -si -so ^
   | %SZIP% x -bb0 -ttar -si -aoa 1>nul 2>nul
 rd /s /q mesa.src 1>nul 2>nul
-move mesa-%MESA_VERSION% mesa.src 1>nul 2>nul
+move mesa-Terakan_RAT_v2 mesa.src 1>nul 2>nul
 git apply -p0 --directory=mesa.src mesa.patch || exit /b 1
 
 mkdir mesa.src\subprojects\llvm
@@ -307,108 +307,30 @@ meson setup ^
   mesa.build-%MESA_ARCH% ^
   mesa.src ^
   --prefix="%CD%\mesa-llvmpipe-%MESA_ARCH%" ^
-  --default-library=static ^
   -Dbuildtype=release ^
   -Db_ndebug=true ^
   -Db_vscrt=mt ^
   -Dllvm=enabled ^
   -Dplatforms=windows ^
   -Dvideo-codecs= ^
-  -Dgallium-drivers=llvmpipe ^
-  -Dvulkan-drivers=swrast ^
+  -Dgallium-drivers= ^
+  -Dvulkan-drivers=terascale ^
   -Degl=disabled ^
   -Dgles1=disabled ^
   -Dgles2=disabled ^
+  -Dopengl=false ^
   !MESON_CROSS! || exit /b 1
 ninja -C mesa.build-%MESA_ARCH% install || exit /b 1
 python mesa.src\src\vulkan\util\vk_icd_gen.py --api-version 1.4 --xml mesa.src\src\vulkan\registry\vk.xml --lib-path vulkan_lvp.dll --out mesa-llvmpipe-%MESA_ARCH%\bin\lvp_icd.!TARGET_ARCH_NAME!.json || exit /b 1
 
-rem *** d3d12, dzn ***
-
-rd /s /q mesa.build-%MESA_ARCH% 1>nul 2>nul
-meson setup ^
-  mesa.build-%MESA_ARCH% ^
-  mesa.src ^
-  --prefix="%CD%\mesa-d3d12-%MESA_ARCH%" ^
-  --default-library=static ^
-  -Dbuildtype=release ^
-  -Db_ndebug=true ^
-  -Db_vscrt=mt ^
-  -Dllvm=disabled ^
-  -Dplatforms=windows ^
-  -Dvideo-codecs=all ^
-  -Dgallium-drivers=d3d12 ^
-  -Dvulkan-drivers=microsoft-experimental ^
-  -Degl=disabled ^
-  -Dgles1=disabled ^
-  -Dgles2=disabled ^
-  !MESON_CROSS! || exit /b 1
-ninja -C mesa.build-%MESA_ARCH% install || exit /b 1
-python mesa.src\src\vulkan\util\vk_icd_gen.py --api-version 1.1 --xml mesa.src\src\vulkan\registry\vk.xml --lib-path vulkan_dzn.dll --out mesa-d3d12-%MESA_ARCH%\bin\dzn_icd.!TARGET_ARCH_NAME!.json || exit /b 1
-if exist "%ProgramFiles(x86)%\Windows Kits\10\Redist\D3D\%MESA_ARCH%\dxil.dll" (
-  copy /y "%ProgramFiles(x86)%\Windows Kits\10\Redist\D3D\%MESA_ARCH%\dxil.dll" mesa-d3d12-%MESA_ARCH%\bin\
-) else if exist "%WindowsSdkVerBinPath%%MESA_ARCH%\dxil.dll" (
-  copy /y "%WindowsSdkVerBinPath%%MESA_ARCH%\dxil.dll" mesa-d3d12-%MESA_ARCH%\bin\
-)
-
-rem *** zink ***
-
-rd /s /q mesa.build-%MESA_ARCH% 1>nul 2>nul
-git apply -p0 --directory=mesa.src mesa-zink.patch || exit /b 1
-meson setup ^
-  mesa.build-%MESA_ARCH% ^
-  mesa.src ^
-  --prefix="%CD%\mesa-zink-%MESA_ARCH%" ^
-  --default-library=static ^
-  -Dbuildtype=release ^
-  -Db_ndebug=true ^
-  -Db_vscrt=mt ^
-  -Dllvm=disabled ^
-  -Dplatforms=windows ^
-  -Dvideo-codecs= ^
-  -Dgallium-drivers=zink ^
-  -Degl=disabled ^
-  -Dgles1=disabled ^
-  -Dgles2=disabled ^
-  !MESON_CROSS! || exit /b 1
-ninja -C mesa.build-%MESA_ARCH% install || exit /b 1
-
 rem *** done ***
-rem output is in mesa-llvmpipe, mesa-d3d12, mesa-zink folders
+rem output is in mesa-llvmpipe folder
 
 if "%GITHUB_WORKFLOW%" neq "" (
   mkdir archive-llvmpipe
   pushd archive-llvmpipe
   copy /y ..\mesa-llvmpipe-%MESA_ARCH%\bin\opengl32.dll .
   %SZIP% a -mx=9 ..\mesa-llvmpipe-%MESA_ARCH%-%MESA_VERSION%.zip 
-  popd
-
-  mkdir archive-lavapipe
-  pushd archive-lavapipe
-  copy /y ..\mesa-llvmpipe-%MESA_ARCH%\bin\vulkan_lvp.dll .
-  copy /y ..\mesa-llvmpipe-%MESA_ARCH%\bin\lvp_icd.!TARGET_ARCH_NAME!.json .
-  %SZIP% a -mx=9 ..\mesa-lavapipe-%MESA_ARCH%-%MESA_VERSION%.zip 
-  popd
-
-  mkdir archive-d3d12
-  pushd archive-d3d12
-  copy /y ..\mesa-d3d12-%MESA_ARCH%\bin\opengl32.dll .
-  copy /y ..\mesa-d3d12-%MESA_ARCH%\bin\dxil.dll .
-  %SZIP% a -mx=9 ..\mesa-d3d12-%MESA_ARCH%-%MESA_VERSION%.zip 
-  popd
-
-  mkdir archive-zink
-  pushd archive-zink
-  copy /y ..\mesa-zink-%MESA_ARCH%\bin\opengl32.dll .
-  %SZIP% a -mx=9 ..\mesa-zink-%MESA_ARCH%-%MESA_VERSION%.zip 
-  popd
-
-  mkdir archive-dzn
-  pushd archive-dzn
-  copy /y ..\mesa-d3d12-%MESA_ARCH%\bin\vulkan_dzn.dll .
-  copy /y ..\mesa-d3d12-%MESA_ARCH%\bin\dxil.dll .
-  copy /y ..\mesa-d3d12-%MESA_ARCH%\bin\dzn_icd.!TARGET_ARCH_NAME!.json .
-  %SZIP% a -mx=9 ..\mesa-dzn-%MESA_ARCH%-%MESA_VERSION%.zip
   popd
 
   echo LLVM_VERSION=%LLVM_VERSION%>>%GITHUB_OUTPUT%
