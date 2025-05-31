@@ -168,8 +168,8 @@ move cmake-%LLVM_VERSION%.src cmake 1>nul 2>nul
 :no-llvm-download
 
 echo Downloading mesa
-curl -sfL https://gitlab.freedesktop.org/Triang3l/mesa/-/archive/Terakan_RAT_v2/mesa-Terakan_RAT_v2.zip ^
-  | %SZIP% x -bb0 -tzip -si -aoa
+curl -sfL https://gitlab.freedesktop.org/Triang3l/mesa/-/archive/Terakan_RAT_v2/mesa-Terakan_RAT_v2.zip > mesa-Terakan.zip
+%SZIP% x mesa-Terakan.zip -o.
 rd /s /q mesa.src
 move mesa-Terakan_RAT_v2 mesa.src
 rem git apply -p0 --directory=mesa.src mesa.patch || exit /b 1
