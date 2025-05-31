@@ -171,6 +171,10 @@ echo Downloading mesa
 curl -sfL https://gitlab.freedesktop.org/Triang3l/mesa/-/archive/Terakan_RAT_v2/mesa-Terakan_RAT_v2.zip ^
   | %SZIP% x -bb0 -tzip -si -aoa 1>nul 2>nul
 rd /s /q mesa.src 1>nul 2>nul
+dir
+cd mesa-Terakan_RAT_v2
+dir
+cd ..
 move mesa-Terakan_RAT_v2 mesa.src 1>nul 2>nul
 git apply -p0 --directory=mesa.src mesa.patch || exit /b 1
 
