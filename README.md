@@ -1,4 +1,4 @@
-Automatic build of [mesa][] opengl & vulkan implementations for Windows (x86, x64, arm64).
+ Automatic build of [mesa][] opengl & vulkan implementations for Windows (x86, x64, arm64).
 
 Builds are linked statically to their dependencies, just place necessary dll file next to your exe and it will use it.
 
